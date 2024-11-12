@@ -87,6 +87,7 @@ export default function SDRTool() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
 
     const formDataToSend = new FormData();
     formDataToSend.append('meetingReason', formData.meetingReason);
@@ -118,10 +119,24 @@ export default function SDRTool() {
         body: formDataToSend,
       });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate document');
+      }
+
       const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
       setResult(data.notionDoc);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error generating document:', error);
+      setError(
+        error instanceof Error 
+          ? error.message 
+          : 'An error occurred while generating the document'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -409,6 +424,11 @@ export default function SDRTool() {
                   New Document
                 </Button>
               </div>
+            </div>
+          )}
+          {error && (
+            <div className="text-red-500 mt-2">
+              {error}
             </div>
           )}
         </CardFooter>

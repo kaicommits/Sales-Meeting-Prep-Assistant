@@ -24,11 +24,17 @@ const generateDoc = cache(async (content: any) => {
 
 export async function POST(req: Request) {
   try {
+    console.log('API route started');
     const anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY || '',
     });
 
+    // Log to verify API key
+    console.log('API Key exists:', !!process.env.ANTHROPIC_API_KEY);
+
     const formData = await req.formData();
+    console.log('Form data received:', Object.fromEntries(formData.entries()));
+
     const meetingReason = formData.get('meetingReason') as string;
     const accountType = formData.get('accountType') as string || 'Not specified';
     const proTeamUsage = formData.get('proTeamUsage') as string;
@@ -161,12 +167,27 @@ Please provide detailed insights for each section based on all the information p
     
     return NextResponse.json({ notionDoc });
 
-  } catch (error) {
-    console.error('Full error details:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate document' }, 
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    // Detailed error logging
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      });
+      
+      return NextResponse.json(
+        { error: 'Failed to generate document: ' + error.message }, 
+        { status: 500 }
+      );
+    } else {
+      // Handle non-Error objects
+      console.error('Unknown error:', error);
+      return NextResponse.json(
+        { error: 'An unexpected error occurred' }, 
+        { status: 500 }
+      );
+    }
   }
 }
 
