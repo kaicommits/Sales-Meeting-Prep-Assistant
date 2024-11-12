@@ -6,7 +6,7 @@ import { cache } from 'react';
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
+  apiKey: process.env.ANTHROPIC_API_KEY,
   maxRetries: 2,
 });
 
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   try {
     console.log('API route started');
     const anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY || '',
+      apiKey: process.env.ANTHROPIC_API_KEY,
     });
 
     // Log to verify API key
@@ -165,7 +165,7 @@ Please provide detailed insights for each section based on all the information p
     const textContent = response.content.find(c => c.type === 'text');
     const notionDoc = textContent?.text || 'No content generated';
     
-    return NextResponse.json({ notionDoc });
+    return NextResponse.json({ success: true, data: notionDoc });
 
   } catch (error: unknown) {
     // Detailed error logging
@@ -177,14 +177,20 @@ Please provide detailed insights for each section based on all the information p
       });
       
       return NextResponse.json(
-        { error: 'Failed to generate document: ' + error.message }, 
+        { 
+          success: false, 
+          error: error.message 
+        },
         { status: 500 }
       );
     } else {
       // Handle non-Error objects
       console.error('Unknown error:', error);
       return NextResponse.json(
-        { error: 'An unexpected error occurred' }, 
+        { 
+          success: false, 
+          error: 'An unknown error occurred' 
+        },
         { status: 500 }
       );
     }
