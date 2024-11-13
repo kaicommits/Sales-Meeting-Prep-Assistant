@@ -62,9 +62,11 @@ export async function POST(request: Request) {
             }
           });
         } else if (value.name.endsWith('.csv')) {
+          // Properly handle CSV content
+          const csvContent = buffer.toString('utf-8');
           messageContent.push({
             type: "text",
-            text: `CSV Content for ${key}:\n${buffer.toString('utf-8')}`
+            text: `Tech Stack CSV Data:\n${csvContent}`
           });
         }
       }
@@ -73,93 +75,61 @@ export async function POST(request: Request) {
     // Add final prompt text block
     messageContent.push({
       type: "text",
-      text: `Create a clear, scannable meeting prep doc for a Vercel AE. Reference Vercel.com and Next.js.org for product context.
+      text: `Now create a detailed meeting prep document using this exact format and information. When information is not provided put "Not Applicable" and use Vercel and Next.js websites as context for the products and plans:
 
-[Company Name from ${companyWebsite}] - Prospect Analysis 📊
+[Make the title look like this and substitute "Company Name" with the actual company name based on the website provided: Company Name - Prospect Analysis 📊]
 
 ## 1. Why'd They Take the Meeting 🤝
 
-[Using the uploaded email/message screenshots, provide:]
-
-• Initial Contact:
-  - Who reached out first
-  - What sparked their interest
-  - Key features they mentioned
-  - Their current scale
-
-• Key Points:
-  - Main discussion topics
-  - Notable quotes
-  - Technical needs
-  - Timing/urgency
-
-• Motivation:
-  - Why Enterprise/Pro now
-  - Current pain points
-  - Growth plans
-  - Tools they're using
-
-${meetingReason ? `\nContext:\n${meetingReason}` : ''}
+> Email Exchange Summary:
+[Please analyze the email screenshots above and provide a bullet-point summary of:
+- A quick summary of the initial email sent
+- The key points from the email exchange
+- The main reason(s) they took the meeting
+- Any specific pain points or needs mentioned
+${meetingReason ? `\nAdditional Context:\n${meetingReason}` : ''}]
 
 ## 2. Account Status 🔐
 
-${accountType ? `${accountType} account` : ''}
+${accountType} account
 
 ## 3. Pro Team Usage 🛠️
 
-${(accountType && accountType !== 'New Customer' && proTeamUsage) ? 
-  `This account is using the ${accountType} plan for ${proTeamUsage}.` 
-  : ''}
+[Please write a sentence that looks like this with the information provided, use proper grammar: This account is using the ${accountType} plan for ${proTeamUsage}. ]
 
 ## 4. Pro Bill Analysis 💰
 
-[Based on the uploaded billing screenshots, provide:]
+[Please analyze the billing screenshots above and provide:
+1. Current monthly spend breakdown by service
+2. Spending trends over time
+3. Key observations about usage patterns
+4. Strategic recommendation for Enterprise upgrade based on:
+   - If spend is near/above $2000/month
+   - If they need more concurrent builds
+   - If they need enhanced security features
+   - If they need custom SLAs
+   - If they need premium support
 
-• Monthly spend and patterns
-• Usage trends
-• Growth indicators
-• Enterprise fit based on:
-  - $2000+ monthly spend
-  - Build needs
-  - Security needs
-  - SLA requirements
-  - Support requirements
-
-Include key numbers and trends.
+Make sure to include specific numbers and percentages when discussing spend and trends.]
 
 ## 5. Tech Stack 🔧
 
-[Using the uploaded Wappalyzer CSV file, provide:]
-
-• Current stack overview
-• Relevant Vercel/Next.js features
-• Migration opportunities
-• Enterprise features that fit their needs
+[Please analyze the CSV data provided above, and display the tech stack as bullet points. Provide suggestions as to why they might want to use Vercel or Next.js based on their tech stack] 
 
 ## 6. Company Overview 🏢
 
-${companyWebsite ? `• Core business
-• Market focus
-• Tech needs
-• Vercel Enterprise fit` : ''}
+[Analyze and summarize with bullet points based on: ${companyWebsite}]
 
 ## 7. Company Funding 💵
 
-${recentFunding ? `• Latest rounds
-• Growth path
-• Scale needs
-• Enterprise readiness` : ''}
+Recent Funding Information:
+${recentFunding} summarize with bullet points
 
 ## 8. Prospect Info 👤
 
-[Based on the uploaded LinkedIn profile screenshots, provide:]
+[Please analyze the prospect screenshots provided above] summarize with bullet points
 
-• Role/decision power
-• Tech background
-• Key experience
-• Main responsibilities
-
-Keep it focused on helping the AE position Vercel's value. Skip any sections where no files or information were provided. Use a friendly, professional tone.`
+Please provide detailed insights for each section based on all the information provided, including the images and CSV data shown above. Use markdown formatting and emojis as shown. Do not include any text underneath the final section`
     });
 
     console.log('Starting API call to Anthropic...'); // Debug log
