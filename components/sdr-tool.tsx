@@ -41,6 +41,10 @@ export default function SDRTool() {
   const [result, setResult] = useState<string | null>(null)
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [loadingStates, setLoadingStates] = useState({
+    processing: false,
+    generating: false,
+  });
 
   useEffect(() => {
     if (isLoading) {
@@ -87,6 +91,7 @@ export default function SDRTool() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setLoadingStates({ processing: true, generating: false });
     setError(null);
 
     const formDataToSend = new FormData();
@@ -119,18 +124,15 @@ export default function SDRTool() {
         body: formDataToSend,
       });
 
+      setLoadingStates(prev => ({ ...prev, generating: true }));
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate document');
+        throw new Error('Failed to generate document');
       }
 
       const data = await response.json();
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      setResult(data.notionDoc);
-    } catch (error: unknown) {
+      setResult(data.content);
+    } catch (error) {
       console.error('Error generating document:', error);
       setError(
         error instanceof Error 
@@ -138,6 +140,7 @@ export default function SDRTool() {
           : 'An error occurred while generating the document'
       );
     } finally {
+      setLoadingStates({ processing: false, generating: false });
       setIsLoading(false);
     }
   };
@@ -387,10 +390,10 @@ export default function SDRTool() {
             <div className="relative w-full">
               <Button 
                 type="submit" 
-                disabled={isLoading} 
+                disabled={loadingStates.processing || loadingStates.generating} 
                 className="w-full"
               >
-                {isLoading ? (
+                {(loadingStates.processing || loadingStates.generating) ? (
                   <>
                     <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-primary-foreground border-r-transparent" />
                     Generating Document...

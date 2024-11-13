@@ -4,35 +4,20 @@ import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import { cache } from 'react';
 
-// Initialize Anthropic client
+// Initialize Anthropic client once at the top level
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
-  maxRetries: 2,
+  maxRetries: 1,
 });
 
-const generateDoc = cache(async (content: any) => {
-  const response = await anthropic.messages.create({
-    model: "claude-3-haiku-20240307",
-    max_tokens: 4000,
-    messages: [{
-      role: "user",
-      content
-    }]
-  });
-  return response;
-});
-
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
     console.log('API route started');
-    const anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
-    });
-
+    
     // Log to verify API key
     console.log('API Key exists:', !!process.env.ANTHROPIC_API_KEY);
 
-    const formData = await req.formData();
+    const formData = await request.formData();
     console.log('Form data received:', Object.fromEntries(formData.entries()));
 
     const meetingReason = formData.get('meetingReason') as string;
@@ -43,7 +28,6 @@ export async function POST(req: Request) {
 
     // Add debug logs
     console.log('Received account type:', accountType);
-    console.log('All form data:', Object.fromEntries(formData.entries()));
 
     // Create array to hold all content blocks
     let messageContent: any[] = [];
@@ -60,7 +44,6 @@ export async function POST(req: Request) {
         const buffer = Buffer.from(await value.arrayBuffer());
         
         if (key === 'meetingReason' && value.type.includes('image')) {
-          // Add image content block for email screenshots
           messageContent.push({
             type: "image",
             source: {
@@ -70,7 +53,6 @@ export async function POST(req: Request) {
             }
           });
         } else if (value.type.includes('image')) {
-          // Add image content block
           messageContent.push({
             type: "image",
             source: {
@@ -80,7 +62,6 @@ export async function POST(req: Request) {
             }
           });
         } else if (value.name.endsWith('.csv')) {
-          // Add CSV content as text block
           messageContent.push({
             type: "text",
             text: `CSV Content for ${key}:\n${buffer.toString('utf-8')}`
@@ -99,11 +80,26 @@ export async function POST(req: Request) {
 ## 1. Why'd They Take the Meeting 🤝
 
 > Email Exchange Summary:
-[Please analyze the email screenshots above and provide a bullet-point summary of:
-- A quick summary of the initial email sent
-- The key points from the email exchange
-- The main reason(s) they took the meeting
-- Any specific pain points or needs mentioned
+[Please provide a comprehensive analysis of the email screenshots above with these specific details:
+
+1. Initial Email Analysis:
+   - Full breakdown of the sender's first message
+   - Key value propositions mentioned
+   - Specific pain points or challenges highlighted
+   - Any technical requirements or scale mentioned
+
+2. Email Exchange Details:
+   - Chronological summary of the back-and-forth
+   - Notable quotes or specific language used
+   - Response tone and level of interest
+   - Any specific features or capabilities discussed
+
+3. Meeting Motivation:
+   - Primary drivers for accepting the meeting
+   - Secondary factors influencing their decision
+   - Timing considerations mentioned
+   - Current tools or solutions they're using/replacing
+
 ${meetingReason ? `\nAdditional Context:\n${meetingReason}` : ''}]
 
 ## 2. Account Status 🔐
@@ -144,7 +140,7 @@ ${recentFunding} summarize with bullet points
 
 ## 8. Prospect Info 👤
 
-[Please analyze the prospect screenshots provided above] summarize with bullet points
+[Please analyze the prospect screenshots provided above] give a detailed summary of the prospect and summarize with bullet points
 
 Please provide detailed insights for each section based on all the information provided, including the images and CSV data shown above. Use markdown formatting and emojis as shown. Do not include any text underneath the final section`
     });
@@ -152,8 +148,9 @@ Please provide detailed insights for each section based on all the information p
     console.log('Starting API call to Anthropic...'); // Debug log
 
     const response = await anthropic.messages.create({
-      model: "claude-3-sonnet-20240229",
+      model: "claude-3-haiku-20240307",
       max_tokens: 4000,
+      temperature: 0.3,
       messages: [{
         role: "user",
         content: messageContent
@@ -162,38 +159,20 @@ Please provide detailed insights for each section based on all the information p
 
     console.log('Received response from Anthropic'); // Debug log
 
-    const textContent = response.content.find(c => c.type === 'text');
-    const notionDoc = textContent?.text || 'No content generated';
-    
-    return NextResponse.json({ success: true, data: notionDoc });
+    return NextResponse.json({
+      success: true,
+      content: response.content[0].text,
+    });
 
   } catch (error: unknown) {
-    // Detailed error logging
-    if (error instanceof Error) {
-      console.error('Error details:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-      });
-      
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: error.message 
-        },
-        { status: 500 }
-      );
-    } else {
-      // Handle non-Error objects
-      console.error('Unknown error:', error);
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'An unknown error occurred' 
-        },
-        { status: 500 }
-      );
-    }
+    console.error('Error details:', error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'An unknown error occurred' 
+      },
+      { status: 500 }
+    );
   }
 }
 
