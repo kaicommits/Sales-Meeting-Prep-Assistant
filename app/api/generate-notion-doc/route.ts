@@ -73,38 +73,37 @@ export async function POST(request: Request) {
     // Add final prompt text block
     messageContent.push({
       type: "text",
-      text: `You are creating a Notion document for a Vercel Account Executive preparing for a sales meeting. Use Vercel.com and Next.js.org as your knowledge base for product offerings and features. Create a concise, human-written style document using this exact format:
+      text: `Create a clear, scannable meeting prep doc for a Vercel AE. Reference Vercel.com and Next.js.org for product context.
 
-[Extract the company name from ${companyWebsite} and format the title as: Company Name - Prospect Analysis 📊]
+[Company Name from ${companyWebsite}] - Prospect Analysis 📊
 
 ## 1. Why'd They Take the Meeting 🤝
 
-> Meeting Context Analysis:
-[Analyze the provided email/LinkedIn screenshots and structure your response as follows:
+[Using the uploaded email/message screenshots, provide:]
 
-1. Meeting Origin:
-   - Who initiated the conversation and their role
-   - Initial pain points or requirements mentioned
-   - Specific Vercel/Next.js features they're interested in
-   - Scale of their current or planned deployment
+• Initial Contact:
+  - Who reached out first
+  - What sparked their interest
+  - Key features they mentioned
+  - Their current scale
 
-2. Conversation Highlights:
-   - Key discussion points from the exchange
-   - Direct quotes showing interest or concerns
-   - Technical requirements discussed
-   - Timeline or urgency indicators
+• Key Points:
+  - Main discussion topics
+  - Notable quotes
+  - Technical needs
+  - Timing/urgency
 
-3. Decision Drivers:
-   - Main reason for pursuing Enterprise/Pro
-   - Current development challenges
-   - Growth or scaling concerns
-   - Existing tools or workflows they're using
+• Motivation:
+  - Why Enterprise/Pro now
+  - Current pain points
+  - Growth plans
+  - Tools they're using
 
-${meetingReason ? `\nAdditional Context:\n${meetingReason}` : ''}]
+${meetingReason ? `\nContext:\n${meetingReason}` : ''}
 
 ## 2. Account Status 🔐
 
-${accountType} account
+${accountType ? `${accountType} account` : ''}
 
 ## 3. Pro Team Usage 🛠️
 
@@ -114,52 +113,53 @@ ${(accountType && accountType !== 'New Customer' && proTeamUsage) ?
 
 ## 4. Pro Bill Analysis 💰
 
-[Review the billing screenshots and highlight:
-1. Monthly spend patterns and total
-2. Usage trends across services
-3. Notable spikes or consistent growth
-4. Enterprise upgrade potential based on:
-   - Monthly spend approaching/exceeding $2000
-   - Build concurrency needs
-   - Security requirements
-   - SLA requirements
-   - Support needs
+[Based on the uploaded billing screenshots, provide:]
 
-Include specific numbers and growth percentages where available.]
+• Monthly spend and patterns
+• Usage trends
+• Growth indicators
+• Enterprise fit based on:
+  - $2000+ monthly spend
+  - Build needs
+  - Security needs
+  - SLA requirements
+  - Support requirements
+
+Include key numbers and trends.
 
 ## 5. Tech Stack 🔧
 
-[From the CSV data:
-- List their current technology stack
-- Identify specific Vercel/Next.js features that complement their stack
-- Note any potential migration or integration opportunities
-- Suggest Enterprise features that align with their technical needs]
+[Using the uploaded Wappalyzer CSV file, provide:]
+
+• Current stack overview
+• Relevant Vercel/Next.js features
+• Migration opportunities
+• Enterprise features that fit their needs
 
 ## 6. Company Overview 🏢
 
-[Based on ${companyWebsite}, provide:
-- Company's core business and market
-- Scale and target audience
-- Technical infrastructure needs
-- Potential use cases for Vercel Enterprise]
+${companyWebsite ? `• Core business
+• Market focus
+• Tech needs
+• Vercel Enterprise fit` : ''}
 
 ## 7. Company Funding 💵
 
-[Analyze ${recentFunding} and highlight:
-- Recent funding rounds
-- Growth trajectory
-- Infrastructure scaling needs
-- Enterprise readiness indicators]
+${recentFunding ? `• Latest rounds
+• Growth path
+• Scale needs
+• Enterprise readiness` : ''}
 
 ## 8. Prospect Info 👤
 
-[From the LinkedIn screenshots, summarize:
-- Role and decision-making authority
-- Technical background
-- Relevant experience
-- Key areas of focus/responsibility]
+[Based on the uploaded LinkedIn profile screenshots, provide:]
 
-Focus on actionable insights that help the AE position Vercel's Enterprise value. If any section lacks input data, leave the section blank rather than speculating. Maintain a professional yet conversational tone throughout.`
+• Role/decision power
+• Tech background
+• Key experience
+• Main responsibilities
+
+Keep it focused on helping the AE position Vercel's value. Skip any sections where no files or information were provided. Use a friendly, professional tone.`
     });
 
     console.log('Starting API call to Anthropic...'); // Debug log
