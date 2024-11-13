@@ -108,7 +108,9 @@ ${accountType} account
 
 ## 3. Pro Team Usage 🛠️
 
-[Craft a clear sentence describing their current usage: This account is using the ${accountType} plan for ${proTeamUsage}.]
+${(accountType && accountType !== 'New Customer' && proTeamUsage) ? 
+  `This account is using the ${accountType} plan for ${proTeamUsage}.` 
+  : ''}
 
 ## 4. Pro Bill Analysis 💰
 
