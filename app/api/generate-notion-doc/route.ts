@@ -73,32 +73,32 @@ export async function POST(request: Request) {
     // Add final prompt text block
     messageContent.push({
       type: "text",
-      text: `Now create a detailed meeting prep document using this exact format and information. When information is not provided put "Not Applicable" and use Vercel and Next.js websites as context for the products and plans:
+      text: `You are creating a Notion document for a Vercel Account Executive preparing for a sales meeting. Use Vercel.com and Next.js.org as your knowledge base for product offerings and features. Create a concise, human-written style document using this exact format:
 
-[Make the title look like this and substitute "Company Name" with the actual company name based on the website provided: Company Name - Prospect Analysis 📊]
+[Extract the company name from ${companyWebsite} and format the title as: Company Name - Prospect Analysis 📊]
 
 ## 1. Why'd They Take the Meeting 🤝
 
-> Email Exchange Summary:
-[Please provide a comprehensive analysis of the email screenshots above with these specific details:
+> Meeting Context Analysis:
+[Analyze the provided email/LinkedIn screenshots and structure your response as follows:
 
-1. Initial Email Analysis:
-   - Full breakdown of the sender's first message
-   - Key value propositions mentioned
-   - Specific pain points or challenges highlighted
-   - Any technical requirements or scale mentioned
+1. Meeting Origin:
+   - Who initiated the conversation and their role
+   - Initial pain points or requirements mentioned
+   - Specific Vercel/Next.js features they're interested in
+   - Scale of their current or planned deployment
 
-2. Email Exchange Details:
-   - Chronological summary of the back-and-forth
-   - Notable quotes or specific language used
-   - Response tone and level of interest
-   - Any specific features or capabilities discussed
+2. Conversation Highlights:
+   - Key discussion points from the exchange
+   - Direct quotes showing interest or concerns
+   - Technical requirements discussed
+   - Timeline or urgency indicators
 
-3. Meeting Motivation:
-   - Primary drivers for accepting the meeting
-   - Secondary factors influencing their decision
-   - Timing considerations mentioned
-   - Current tools or solutions they're using/replacing
+3. Decision Drivers:
+   - Main reason for pursuing Enterprise/Pro
+   - Current development challenges
+   - Growth or scaling concerns
+   - Existing tools or workflows they're using
 
 ${meetingReason ? `\nAdditional Context:\n${meetingReason}` : ''}]
 
@@ -108,41 +108,56 @@ ${accountType} account
 
 ## 3. Pro Team Usage 🛠️
 
-[Please write a sentence that looks like this with the information provided, use proper grammar: This account is using the ${accountType} plan for ${proTeamUsage}. ]
+[Craft a clear sentence describing their current usage: This account is using the ${accountType} plan for ${proTeamUsage}.]
 
 ## 4. Pro Bill Analysis 💰
 
-[Please analyze the billing screenshots above and provide:
-1. Current monthly spend breakdown by service
-2. Spending trends over time
-3. Key observations about usage patterns
-4. Strategic recommendation for Enterprise upgrade based on:
-   - If spend is near/above $2000/month
-   - If they need more concurrent builds
-   - If they need enhanced security features
-   - If they need custom SLAs
-   - If they need premium support
+[Review the billing screenshots and highlight:
+1. Monthly spend patterns and total
+2. Usage trends across services
+3. Notable spikes or consistent growth
+4. Enterprise upgrade potential based on:
+   - Monthly spend approaching/exceeding $2000
+   - Build concurrency needs
+   - Security requirements
+   - SLA requirements
+   - Support needs
 
-Make sure to include specific numbers and percentages when discussing spend and trends.]
+Include specific numbers and growth percentages where available.]
 
 ## 5. Tech Stack 🔧
 
-[Please analyze the CSV data provided above, and display the tech stack as bullet points. Provide suggestions as to why they might want to use Vercel or Next.js based on their tech stack] 
+[From the CSV data:
+- List their current technology stack
+- Identify specific Vercel/Next.js features that complement their stack
+- Note any potential migration or integration opportunities
+- Suggest Enterprise features that align with their technical needs]
 
 ## 6. Company Overview 🏢
 
-[Analyze and summarize with bullet points based on: ${companyWebsite}]
+[Based on ${companyWebsite}, provide:
+- Company's core business and market
+- Scale and target audience
+- Technical infrastructure needs
+- Potential use cases for Vercel Enterprise]
 
 ## 7. Company Funding 💵
 
-Recent Funding Information:
-${recentFunding} summarize with bullet points
+[Analyze ${recentFunding} and highlight:
+- Recent funding rounds
+- Growth trajectory
+- Infrastructure scaling needs
+- Enterprise readiness indicators]
 
 ## 8. Prospect Info 👤
 
-[Please analyze the prospect screenshots provided above] give a detailed summary of the prospect and summarize with bullet points
+[From the LinkedIn screenshots, summarize:
+- Role and decision-making authority
+- Technical background
+- Relevant experience
+- Key areas of focus/responsibility]
 
-Please provide detailed insights for each section based on all the information provided, including the images and CSV data shown above. Use markdown formatting and emojis as shown. Do not include any text underneath the final section`
+Focus on actionable insights that help the AE position Vercel's Enterprise value. If any section lacks input data, leave the section blank rather than speculating. Maintain a professional yet conversational tone throughout.`
     });
 
     console.log('Starting API call to Anthropic...'); // Debug log
