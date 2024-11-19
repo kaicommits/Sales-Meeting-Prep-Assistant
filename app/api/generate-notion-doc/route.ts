@@ -1,14 +1,21 @@
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
-import { cache } from 'react';
 
 // Initialize Anthropic client once at the top level
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
   maxRetries: 1,
 });
+
+type MessageContent = {
+  type: "text" | "image";
+  text?: string;
+  source?: {
+    type: "base64";
+    media_type: string;
+    data: string;
+  };
+};
 
 export async function POST(request: Request) {
   try {
@@ -21,16 +28,10 @@ export async function POST(request: Request) {
     console.log('Form data received:', Object.fromEntries(formData.entries()));
 
     const meetingReason = formData.get('meetingReason') as string;
-    const accountType = formData.get('accountType') as string || 'Not specified';
-    const proTeamUsage = formData.get('proTeamUsage') as string;
     const companyWebsite = formData.get('companyWebsite') as string;
-    const recentFunding = formData.get('recentFunding') as string;
-
-    // Add debug logs
-    console.log('Received account type:', accountType);
 
     // Create array to hold all content blocks
-    let messageContent: any[] = [];
+    let messageContent: MessageContent[] = [];
 
     // Add initial text block
     messageContent.push({
@@ -39,20 +40,17 @@ export async function POST(request: Request) {
     });
 
     // Process files and add them as content blocks
+    let techStackData = '';
+    let hasProBill = false;
+
     for (const [key, value] of formData.entries()) {
       if (value instanceof File) {
         const buffer = Buffer.from(await value.arrayBuffer());
         
-        if (key === 'meetingReason' && value.type.includes('image')) {
-          messageContent.push({
-            type: "image",
-            source: {
-              type: "base64",
-              media_type: value.type,
-              data: buffer.toString('base64')
-            }
-          });
-        } else if (value.type.includes('image')) {
+        if (value.type.includes('image')) {
+          if (key === 'proBill') {
+            hasProBill = true;
+          }
           messageContent.push({
             type: "image",
             source: {
@@ -62,74 +60,75 @@ export async function POST(request: Request) {
             }
           });
         } else if (value.name.endsWith('.csv')) {
-          // Properly handle CSV content
-          const csvContent = buffer.toString('utf-8');
+          techStackData = buffer.toString('utf-8');
           messageContent.push({
             type: "text",
-            text: `Tech Stack CSV Data:\n${csvContent}`
+            text: `Current Technology Stack (from Wappalyzer CSV):\n${techStackData}`
           });
         }
+      } else if (key === 'companyWebsite') {
+        messageContent.push({
+          type: "text",
+          text: `Company Website URL: ${value}`
+        });
       }
     }
 
     // Add final prompt text block
     messageContent.push({
       type: "text",
-      text: `Now create a detailed meeting prep document using this exact format and information. When information is not provided put "Not Applicable" and use Vercel and Next.js websites as context for the products and plans:
+      text: `You are a Business Development Representative at Vercel tasked with creating a concise summary to help a Vercel Account Executive prepare for a meeting with a prospective or current customer. The summary should be based on the following input variables:
 
-[Make the title look like this and substitute "Company Name" with the actual company name based on the website provided: Company Name - Prospect Analysis 📊]
+-Screenshots of the company's LinkedIn page on Sales Navigator (provided as companySalesNav screenshots)
+-The company's website URL (provided as companyWebsite)
+-A CSV file containing the company's technology stack (provided as techStack files)
+-Screenshots of the company's current spending on the Vercel Pro plan (provided as proBill screenshots)
+-Screenshots of the prospect's LinkedIn profile (provided as prospectInfo screenshots)
+-Screenshots of email/LinkedIn conversation or notes from the phone call that set the meeting (provided as meetingReason screenshots)
 
-## 1. Why'd They Take the Meeting 🤝
+Using these inputs, create a summary with the following sections:
 
-> Email Exchange Summary:
-[Please analyze the email screenshots above and provide a bullet-point summary of:
-- A quick summary of the initial email sent
-- The key points from the email exchange
-- The main reason(s) they took the meeting
-- Any specific pain points or needs mentioned
-${meetingReason ? `\nAdditional Context:\n${meetingReason}` : ''}]
+1. Company Background
+2. Vercel Product Fit
+3. Vercel Customer Story
+4. Prospect Background
+5. Meeting Background
 
-## 2. Account Status 🔐
+Guidelines for each section:
 
-${accountType} account
+Company Background:
+   - Analyze the Screenshots of the company's LinkedIn page on Sales Navigator
+   - Visit and analyze the company website URL provided above
+   - Summarize the company's business, market position, funding (if applicable), employee count, and revenue
 
-## 3. Pro Team Usage 🛠️
+Vercel Product Fit:
+   - Review the technology stack data provided above from the Wappalyzer CSV file
+   - Based on their current tech stack, identify specific Vercel product offerings that could benefit the company
+   ${hasProBill ? '- Analyze the Pro Bill screenshots provided above to assess if the prospect is a good fit for Vercel\'s Enterprise plan based on their current usage and spending and details about their current spending and why or why not this means they would be a good fit for Vercel\'s Enterprise plan' : '- Note: No Pro Bill information provided'}
+   - Use Vercel's web pages as additional context for product recommendations
+   - Use Vercel's web pages as additional context for analyzing the Pro Bill to see if the prospect is a good fit for Vercel's Enterprise plan based on their current usage and spending
 
-[Please write a sentence that looks like this with the information provided, use proper grammar: This account is using the ${accountType} plan for ${proTeamUsage}. ]
+Vercel Customer Story:
+   - Based on the company's website URL, find a relevant customer story from Vercel's website
 
-## 4. Pro Bill Analysis 💰
+Prospect Background:
+   - Analyze the Screenshots of the prospect's LinkedIn profile
+   - Summarize the prospect's current role, tenure, location, education, and previous experience
 
-[Please analyze the billing screenshots above and provide:
-1. Current monthly spend breakdown by service
-2. Spending trends over time
-3. Key observations about usage patterns
-4. Strategic recommendation for Enterprise upgrade based on:
-   - If spend is near/above $2000/month
-   - If they need more concurrent builds
-   - If they need enhanced security features
-   - If they need custom SLAs
-   - If they need premium support
+Meeting Background:
+   - Review the screenshots of email/LinkedIn conversation or notes from the phone call that set the meeting
+   - Summarize the SDR's pitch that secured the meeting
+   - Include any additional information provided by the prospect about their interest
 
-Make sure to include specific numbers and percentages when discussing spend and trends.]
+Format your summary as a list of bullet points, with no more than 15 points in total. Use clear and concise language, and ensure that each point provides valuable information for the Account Executive.
 
-## 5. Tech Stack 🔧
+Begin your summary with the heading "Meeting Preparation Summary" and use subheadings for each section.
 
-[Please analyze the CSV data provided above, and display the tech stack as bullet points. Provide suggestions as to why they might want to use Vercel or Next.js based on their tech stack] 
+Context provided:
+- Company Website: ${companyWebsite}
+${meetingReason ? `- Additional Context: ${meetingReason}` : ''}
 
-## 6. Company Overview 🏢
-
-[Analyze and summarize with bullet points based on: ${companyWebsite}]
-
-## 7. Company Funding 💵
-
-Recent Funding Information:
-${recentFunding} summarize with bullet points
-
-## 8. Prospect Info 👤
-
-[Please analyze the prospect screenshots provided above] summarize with bullet points
-
-Please provide detailed insights for each section based on all the information provided, including the images and CSV data shown above. Use markdown formatting and emojis as shown. Do not include any text underneath the final section`
+Please analyze all provided screenshots and files to create this summary.`
     });
 
     console.log('Starting API call to Anthropic...'); // Debug log
@@ -140,7 +139,7 @@ Please provide detailed insights for each section based on all the information p
       temperature: 0.3,
       messages: [{
         role: "user",
-        content: messageContent
+        content: messageContent as any[] // temporary type assertion until Anthropic fixes their types
       }]
     });
 

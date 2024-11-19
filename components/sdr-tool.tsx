@@ -6,35 +6,34 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 
 type FormData = {
   meetingReason: string
-  accountType: 'Pro' | 'Hobby' | 'New Customer' | ''
-  proTeamUsage: string
   companyWebsite: string
-  recentFunding: string
 }
 
 type ScreenshotData = {
   [key: string]: File[]
+  meetingReason: File[]
+  proBill: File[]
+  techStack: File[]
+  prospectInfo: File[]
+  companySalesNav: File[]
 }
 
 export default function SDRTool() {
   const [formData, setFormData] = useState<FormData>({
     meetingReason: '',
-    accountType: '',
-    proTeamUsage: '',
     companyWebsite: '',
-    recentFunding: '',
   })
 
   const [screenshots, setScreenshots] = useState<ScreenshotData>({
     meetingReason: [],
     proBill: [],
     techStack: [],
-    prospectInfo: []
+    prospectInfo: [],
+    companySalesNav: [],
   })
 
   const [isLoading, setIsLoading] = useState(false)
@@ -67,10 +66,6 @@ export default function SDRTool() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleAccountTypeChange = (value: 'Pro' | 'Hobby' | 'New Customer') => {
-    setFormData(prev => ({ ...prev, accountType: value }))
-  }
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, files } = e.target
     if (files) {
@@ -96,16 +91,12 @@ export default function SDRTool() {
 
     const formDataToSend = new FormData();
     formDataToSend.append('meetingReason', formData.meetingReason);
+    formDataToSend.append('companyWebsite', formData.companyWebsite);
     
     // Append email screenshots
     screenshots.meetingReason.forEach((file) => {
       formDataToSend.append('meetingReason', file);
     });
-
-    formDataToSend.append('accountType', formData.accountType);
-    formDataToSend.append('proTeamUsage', formData.proTeamUsage);
-    formDataToSend.append('companyWebsite', formData.companyWebsite);
-    formDataToSend.append('recentFunding', formData.recentFunding);
 
     // Append files
     screenshots.proBill.forEach((file) => {
@@ -117,14 +108,17 @@ export default function SDRTool() {
     screenshots.prospectInfo.forEach((file) => {
       formDataToSend.append('prospectInfo', file);
     });
+    screenshots.companySalesNav.forEach((file) => {
+      formDataToSend.append('companySalesNav', file);
+    });
 
     try {
+      setLoadingStates({ processing: false, generating: true });
+      
       const response = await fetch('/api/generate-notion-doc', {
         method: 'POST',
         body: formDataToSend,
       });
-
-      setLoadingStates(prev => ({ ...prev, generating: true }));
 
       if (!response.ok) {
         throw new Error('Failed to generate document');
@@ -148,24 +142,26 @@ export default function SDRTool() {
   const handleCopyText = () => {
     if (result) {
       navigator.clipboard.writeText(result)
-        .then(() => alert('Text copied to clipboard!'))
-        .catch(err => console.error('Failed to copy text: ', err))
+        .then(() => {
+          console.log('Text copied successfully')
+        })
+        .catch(err => {
+          console.error('Failed to copy text: ', err)
+        })
     }
   }
 
   const handleNewDocument = () => {
     setFormData({
       meetingReason: '',
-      accountType: '',
-      proTeamUsage: '',
       companyWebsite: '',
-      recentFunding: '',
     })
     setScreenshots({
       meetingReason: [],
       proBill: [],
       techStack: [],
-      prospectInfo: []
+      prospectInfo: [],
+      companySalesNav: [],
     })
     setResult(null)
   }
@@ -173,12 +169,166 @@ export default function SDRTool() {
   return (
     <div className="container mx-auto p-4">
       <Card className="w-full max-w-4xl mx-auto">
-        <CardHeader>
-          <CardTitle>🧑‍💻 Vercel Sales Meeting Prep Assistant</CardTitle>
-          <CardDescription>Enter information and upload screenshots to create a meeting prep document</CardDescription>
+        <CardHeader className="pt-6">
+          <CardTitle>🧑‍💻 VDR Handoff Assistant</CardTitle>
+          <CardDescription>Enter information and upload screenshots to create a VDR handoff note</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-12">
+            <div className="space-y-4">
+              <Label htmlFor="companyWebsite" className="text-lg font-semibold">🏢 Company Description</Label>
+              <div className="flex flex-col space-y-2">
+                <Input
+                  id="companyWebsite"
+                  name="companyWebsite"
+                  value={formData.companyWebsite}
+                  onChange={handleInputChange}
+                  className="w-full"
+                  placeholder="Paste link of company's website"
+                />
+                <div>
+                  <Input
+                    type="file"
+                    id="companySalesNav-screenshot"
+                    name="companySalesNav"
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    className="hidden"
+                    multiple
+                  />
+                  <Label
+                    htmlFor="companySalesNav-screenshot"
+                    className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-black hover:text-white h-10 px-4 py-2"
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload a screenshot of the company on Sales Nav
+                  </Label>
+                  {screenshots.companySalesNav.map((file, index) => (
+                    <div key={index} className="mt-2 flex items-center">
+                      <span className="text-sm text-gray-500">{file.name}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="ml-2"
+                        onClick={() => handleFileRemove('companySalesNav', index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <Label htmlFor="techStack-file" className="text-lg font-semibold">🖥️ Tech Stack</Label>
+              <div>
+                <Input
+                  type="file"
+                  id="techStack-file"
+                  name="techStack"
+                  onChange={handleFileChange}
+                  accept=".csv"
+                  className="hidden"
+                  multiple
+                />
+                <Label
+                  htmlFor="techStack-file"
+                  className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-black hover:text-white h-10 px-4 py-2"
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload Wappalyzer .CSV File
+                </Label>
+                {screenshots.techStack.map((file, index) => (
+                  <div key={index} className="mt-2 flex items-center">
+                    <span className="text-sm text-gray-500">{file.name}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="ml-2"
+                      onClick={() => handleFileRemove('techStack', index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <Label htmlFor="proBill-screenshot" className="text-lg font-semibold">💰 Pro Bill</Label>
+              <div>
+                <Input
+                  type="file"
+                  id="proBill-screenshot"
+                  name="proBill"
+                  onChange={handleFileChange}
+                  accept="image/*"
+                  className="hidden"
+                  multiple
+                />
+                <Label
+                  htmlFor="proBill-screenshot"
+                  className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-black hover:text-white h-10 px-4 py-2"
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload a screenshot of the Pro Bill
+                </Label>
+                {screenshots.proBill.map((file, index) => (
+                  <div key={index} className="mt-2 flex items-center">
+                    <span className="text-sm text-gray-500">{file.name}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="ml-2"
+                      onClick={() => handleFileRemove('proBill', index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <Label htmlFor="prospectInfo-screenshot" className="text-lg font-semibold">👤 Prospect Info</Label>
+              <div>
+                <Input
+                  type="file"
+                  id="prospectInfo-screenshot"
+                  name="prospectInfo"
+                  onChange={handleFileChange}
+                  accept="image/*"
+                  className="hidden"
+                  multiple
+                />
+                <Label
+                  htmlFor="prospectInfo-screenshot"
+                  className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-black hover:text-white h-10 px-4 py-2"
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload a screenshot of the Prospect Info
+                </Label>
+                {screenshots.prospectInfo.map((file, index) => (
+                  <div key={index} className="mt-2 flex items-center">
+                    <span className="text-sm text-gray-500">{file.name}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="ml-2"
+                      onClick={() => handleFileRemove('prospectInfo', index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-4">
               <Label htmlFor="meetingReason" className="text-lg font-semibold">🤝 Meeting Context</Label>
               <div className="flex flex-col space-y-2">
@@ -225,183 +375,21 @@ export default function SDRTool() {
               </div>
             </div>
 
-            <div className="space-y-4">
-              <Label className="text-lg font-semibold">🏷️ Account Type</Label>
-              <RadioGroup onValueChange={handleAccountTypeChange} value={formData.accountType} className="flex space-x-4">
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="Pro" id="pro" />
-                  <Label htmlFor="pro">Pro</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="Hobby" id="hobby" />
-                  <Label htmlFor="hobby">Hobby</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="New Customer" id="new-customer" />
-                  <Label htmlFor="new-customer">New Customer</Label>
-                </div>
-              </RadioGroup>
-            </div>
-
-            <div className="space-y-4">
-              <Label htmlFor="proTeamUsage" className="text-lg font-semibold">👥 Pro Team Usage</Label>
-              <Input
-                id="proTeamUsage"
-                name="proTeamUsage"
-                value={formData.proTeamUsage}
-                onChange={handleInputChange}
-                className="w-full"
-                placeholder="Enter what the customer is currently using the Pro Team or Hobby Account for (ex. internal tools, marketing site, web app, etc.)"
-              />
-            </div>
-
-            <div className="space-y-4">
-              <Label htmlFor="proBill-screenshot" className="text-lg font-semibold">💰 Pro Bill</Label>
-              <div>
-                <Input
-                  type="file"
-                  id="proBill-screenshot"
-                  name="proBill"
-                  onChange={handleFileChange}
-                  accept="image/*"
-                  className="hidden"
-                  multiple
-                />
-                <Label
-                  htmlFor="proBill-screenshot"
-                  className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-black hover:text-white h-10 px-4 py-2"
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload screenshots of the bill over the last 6 months and last month's invoice details
-                </Label>
-                {screenshots.proBill.map((file, index) => (
-                  <div key={index} className="mt-2 flex items-center">
-                    <span className="text-sm text-gray-500">{file.name}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="ml-2"
-                      onClick={() => handleFileRemove('proBill', index)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <Label htmlFor="techStack-screenshot" className="text-lg font-semibold">🖥️ Tech Stack</Label>
-              <div>
-                <Input
-                  type="file"
-                  id="techStack-screenshot"
-                  name="techStack"
-                  onChange={handleFileChange}
-                  accept=".csv"
-                  className="hidden"
-                  multiple
-                />
-                <Label
-                  htmlFor="techStack-screenshot"
-                  className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-black hover:text-white h-10 px-4 py-2"
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload .csv files of Wappalyzer export
-                </Label>
-                {screenshots.techStack.map((file, index) => (
-                  <div key={index} className="mt-2 flex items-center">
-                    <span className="text-sm text-gray-500">{file.name}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="ml-2"
-                      onClick={() => handleFileRemove('techStack', index)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <Label htmlFor="companyWebsite" className="text-lg font-semibold">🏢 Company Description</Label>
-              <Input
-                id="companyWebsite"
-                name="companyWebsite"
-                value={formData.companyWebsite}
-                onChange={handleInputChange}
-                className="w-full"
-                placeholder="Paste link of company's website"
-              />
-            </div>
-
-            <div className="space-y-4">
-              <Label htmlFor="recentFunding" className="text-lg font-semibold">💸 Recent Funding</Label>
-              <Input
-                id="recentFunding"
-                name="recentFunding"
-                value={formData.recentFunding}
-                onChange={handleInputChange}
-                className="w-full"
-                placeholder="Paste any links to articles announcing funding rounds for this prospect"
-              />
-            </div>
-
-            <div className="space-y-4">
-              <Label htmlFor="prospectInfo-screenshot" className="text-lg font-semibold">👤 Prospect Info</Label>
-              <div>
-                <Input
-                  type="file"
-                  id="prospectInfo-screenshot"
-                  name="prospectInfo"
-                  onChange={handleFileChange}
-                  accept="image/*"
-                  className="hidden"
-                  multiple
-                />
-                <Label
-                  htmlFor="prospectInfo-screenshot"
-                  className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-black hover:text-white h-10 px-4 py-2"
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload Screenshots of the Prospect's LinkedIn Profile and Experience
-                </Label>
-                {screenshots.prospectInfo.map((file, index) => (
-                  <div key={index} className="mt-2 flex items-center">
-                    <span className="text-sm text-gray-500">{file.name}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="ml-2"
-                      onClick={() => handleFileRemove('prospectInfo', index)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             <div className="relative w-full">
               <Button 
                 type="submit" 
                 disabled={loadingStates.processing || loadingStates.generating} 
-                className="w-full"
+                className="w-full bg-black text-white hover:bg-white hover:text-black hover:shadow-[0_4px_14px_0_rgb(0,0,0,0.25)] transition duration-200"
               >
                 {(loadingStates.processing || loadingStates.generating) ? (
                   <>
                     <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-primary-foreground border-r-transparent" />
-                    Generating Document...
+                    <span>Generating Document...</span>
                   </>
                 ) : (
                   <>
                     <Zap className="mr-2 h-4 w-4" />
-                    Generate Meeting Prep Document
+                    <span>Generate Meeting Prep Document</span>
                   </>
                 )}
               </Button>
@@ -418,11 +406,17 @@ export default function SDRTool() {
                 className="w-full h-96 mb-4 font-mono text-sm"
               />
               <div className="flex justify-end space-x-2">
-                <Button onClick={handleCopyText} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
+                <Button 
+                  onClick={handleCopyText} 
+                  className="bg-secondary text-secondary-foreground hover:bg-black hover:text-white hover:shadow-[0_4px_14px_0_rgb(0,0,0,0.25)] transition duration-200"
+                >
                   <Copy className="mr-1 h-4 w-4" />
                   Copy Text
                 </Button>
-                <Button onClick={handleNewDocument} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
+                <Button 
+                  onClick={handleNewDocument} 
+                  className="bg-secondary text-secondary-foreground hover:bg-black hover:text-white hover:shadow-[0_4px_14px_0_rgb(0,0,0,0.25)] transition duration-200"
+                >
                   <RefreshCw className="mr-1 h-4 w-4" />
                   New Document
                 </Button>

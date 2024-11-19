@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Meeting Prep Assistant",
-  description: "Meeting Prep Assistant for Vercel Sales Team",
+  title: "VDR Handoff Assistant",
+  description: "Opportunity Handoff Assistant for Vercel VDRs",
   icons: {
     icon: "/favicon.ico",
   },
