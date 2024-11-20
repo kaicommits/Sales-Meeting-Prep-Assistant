@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { vercelContext } from '../prompts/vercel-context';
 
 // Initialize Anthropic client once at the top level
 const anthropic = new Anthropic({
@@ -33,7 +34,13 @@ export async function POST(request: Request) {
     // Create array to hold all content blocks
     let messageContent: MessageContent[] = [];
 
-    // Add initial text block
+    // Add Vercel context first
+    messageContent.push({
+      type: "text",
+      text: `Here is important context about Vercel's Enterprise offering:\n\n${vercelContext}\n\n`
+    });
+
+    // Add initial instruction
     messageContent.push({
       type: "text",
       text: "Please analyze these files and create a meeting prep document:"
@@ -42,15 +49,25 @@ export async function POST(request: Request) {
     // Process files and add them as content blocks
     let techStackData = '';
     let hasProBill = false;
+    let hasProspectInfo = false;
+    let hasMeetingContext = false;
 
     for (const [key, value] of formData.entries()) {
       if (value instanceof File) {
         const buffer = Buffer.from(await value.arrayBuffer());
         
         if (value.type.includes('image')) {
+          // Track which types of screenshots we have
           if (key === 'proBill') {
             hasProBill = true;
           }
+          if (key === 'prospectInfo') {
+            hasProspectInfo = true;
+          }
+          if (key === 'meetingReason') {
+            hasMeetingContext = true;
+          }
+
           messageContent.push({
             type: "image",
             source: {
@@ -58,6 +75,12 @@ export async function POST(request: Request) {
               media_type: value.type,
               data: buffer.toString('base64')
             }
+          });
+
+          // Add context about what type of image this is
+          messageContent.push({
+            type: "text",
+            text: `Above image is a screenshot of: ${key}`
           });
         } else if (value.name.endsWith('.csv')) {
           techStackData = buffer.toString('utf-8');
@@ -74,10 +97,24 @@ export async function POST(request: Request) {
       }
     }
 
-    // Add final prompt text block
+    // Then add your regular prompt
     messageContent.push({
       type: "text",
-      text: `You are a Business Development Representative at Vercel tasked with creating a concise summary to help a Vercel Account Executive prepare for a meeting with a prospective or current customer. The summary should be based on the following input variables:
+      text: `You are a Business Development Representative at Vercel creating a meeting prep document.
+
+IMPORTANT - REQUIRED FORMAT:
+1. Use ONLY these sections in this order:
+   - Company Background
+   - Vercel Product Fit
+   - Vercel Customer Story
+   - Prospect Background
+   - Meeting Background
+2. DO NOT add any additional sections
+3. DO NOT include a Key Takeaways section
+4. DO NOT include a summary at the end
+5. STOP after the Meeting Background section
+
+The summary should be based on the following input variables:
 
 -Screenshots of the company's LinkedIn page on Sales Navigator (provided as companySalesNav screenshots)
 -The company's website URL (provided as companyWebsite)
@@ -97,38 +134,81 @@ Using these inputs, create a summary with the following sections:
 Guidelines for each section:
 
 Company Background:
-   - Analyze the Screenshots of the company's LinkedIn page on Sales Navigator
-   - Visit and analyze the company website URL provided above
-   - Summarize the company's business, market position, funding (if applicable), employee count, and revenue
+   - Analyze the Screenshots of the company's LinkedIn page on Sales Navigator and look specifically for:
+     * Company location
+     * Employee count
+     * Company revenue
+     * Create bullet points for each of these points
+   - Visit and analyze the company website URL provided above to understand:
+     * Their product/service offerings
+     * Target market and customer base
+     * Create bullet points for each of these points
+   - Research the company and find:
+     * Funding information (REQUIRED):
+       - If found: Include the exact amount, date, and stage and cite source
+       - If not found: Explicitly state "No funding information found"
+     * Create bullet points for each of these points
 
 Vercel Product Fit:
-   - Review the technology stack data provided above from the Wappalyzer CSV file
-   - Based on their current tech stack, identify specific Vercel product offerings that could benefit the company
-   ${hasProBill ? '- Analyze the Pro Bill screenshots provided above to assess if the prospect is a good fit for Vercel\'s Enterprise plan based on their current usage and spending and details about their current spending and why or why not this means they would be a good fit for Vercel\'s Enterprise plan' : '- Note: No Pro Bill information provided'}
-   - Use Vercel's web pages as additional context for product recommendations
-   - Use Vercel's web pages as additional context for analyzing the Pro Bill to see if the prospect is a good fit for Vercel's Enterprise plan based on their current usage and spending
+   - Technology Stack Analysis:
+     * Review the Wappalyzer CSV data provided above
+     * Based on their current technology choices, identify which Vercel Enterprise features would benefit them most
+     * Highlight any competing or complementary technologies in their stack
+     * Summarize why their tech stack makes them a good fit for Vercel Enterprise
+
+   ${hasProBill ? `- Pro Plan Usage Analysis:
+     * REQUIRED - Extract and list these exact numbers from the Pro Bill screenshots:
+       - Total bill amount for last month (exact number required, e.g., "$1,234.56")
+       - List the top 3 cost items with exact amounts and percentages (all three required):
+         > [Item 1 name]: $XXX.XX (XX% of total)
+         > [Item 2 name]: $XXX.XX (XX% of total)
+         > [Item 3 name]: $XXX.XX (XX% of total)
+       - Show month-over-month spending trend with specific numbers
+       DO NOT skip showing these exact numbers` 
+   : '- Note: No Pro Bill information provided'}
+
+   Use Vercel's product documentation as context for:
+   - Enterprise plan features and benefits
+   - Usage limits and pricing thresholds
+   - Enterprise-specific capabilities
 
 Vercel Customer Story:
-   - Based on the company's website URL, find a relevant customer story from Vercel's website
+   - Review the company's website and the provided Vercel customer stories
+   - Select the most relevant customer story based on:
+     * Similar industry or business model
+     * Similar technical challenges
+     * Similar scale or growth trajectory
+   - Summarize why this customer story would resonate with the prospect
+   - Highlight specific metrics or improvements that would be relevant to them
+   - Give multiple bullet points that the Account Executive can use to sell Vercel Enterprise to the prospect
 
 Prospect Background:
-   - Analyze the Screenshots of the prospect's LinkedIn profile
-   - Summarize the prospect's current role, tenure, location, education, and previous experience
+   - IMPORTANT: This section is about the CUSTOMER/PROSPECT only
+   ${hasProspectInfo ? 
+     `- Use ONLY the prospect's LinkedIn profile screenshots to list:
+       * Their current role (as shown on LinkedIn)
+       * Their tenure (as shown on LinkedIn)
+       * Their location (as shown on LinkedIn)
+       * Their education (as shown on LinkedIn)
+       * Their previous experience (as shown on LinkedIn)` 
+     : '- Note: No prospect LinkedIn profile screenshot provided'}
+   - DO NOT use information from meeting/email screenshots in this section
+   - DO NOT confuse this with the SDR's information
 
 Meeting Background:
-   - Review the screenshots of email/LinkedIn conversation or notes from the phone call that set the meeting
-   - Summarize the SDR's pitch that secured the meeting
-   - Include any additional information provided by the prospect about their interest
+   - IMPORTANT: This section is about the CONVERSATION between SDR and prospect
+   ${hasMeetingContext ? 
+     `- Use ONLY the meeting context screenshots (email/LinkedIn/call notes) to show:
+       * What the SDR said to secure the meeting
+       * How the prospect responded
+       * Any specific interests/concerns mentioned by the prospect` 
+     : '- Note: No meeting context screenshots provided'}
+   - DO NOT use information from the prospect's LinkedIn profile here
+   - DO NOT confuse the prospect's LinkedIn profile with meeting context
 
 Format your summary as a list of bullet points, with no more than 15 points in total. Use clear and concise language, and ensure that each point provides valuable information for the Account Executive.
 
-Begin your summary with the heading "Meeting Preparation Summary" and use subheadings for each section.
-
-Context provided:
-- Company Website: ${companyWebsite}
-${meetingReason ? `- Additional Context: ${meetingReason}` : ''}
-
-Please analyze all provided screenshots and files to create this summary.`
+Begin your summary with the heading "Meeting Preparation Summary" and use subheadings for each section.`
     });
 
     console.log('Starting API call to Anthropic...'); // Debug log
