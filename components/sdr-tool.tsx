@@ -262,7 +262,7 @@ export default function SDRTool() {
                   className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-black hover:text-white h-10 px-4 py-2"
                 >
                   <Upload className="mr-2 h-4 w-4" />
-                  Upload a screenshot of the Pro Bill
+                  Upload screenshots of the Pro Bill
                 </Label>
                 {screenshots.proBill.map((file, index) => (
                   <div key={index} className="mt-2 flex items-center">

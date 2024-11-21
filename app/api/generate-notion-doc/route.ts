@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { vercelContext } from '../prompts/vercel-context';
 
 // Initialize Anthropic client once at the top level
 const anthropic = new Anthropic({
@@ -33,12 +32,6 @@ export async function POST(request: Request) {
 
     // Create array to hold all content blocks
     let messageContent: MessageContent[] = [];
-
-    // Add Vercel context first
-    messageContent.push({
-      type: "text",
-      text: `Here is important context about Vercel's Enterprise offering and Customer Stories to reference:\n\n${vercelContext}\n\n`
-    });
 
     // Add initial instruction
     messageContent.push({
@@ -102,7 +95,6 @@ IMPORTANT - REQUIRED FORMAT:
 1. Use ONLY these sections in this order:
    - Company Background
    - Vercel Product Fit
-   - Vercel Customer Story
    - Prospect Background
 
 The summary should be based on the following input variables:
@@ -117,7 +109,6 @@ Using these inputs, create a summary with the following sections:
 
 1. Company Background
 2. Vercel Product Fit
-3. Vercel Customer Story
 4. Prospect Background
 
 Guidelines for each section:
@@ -157,16 +148,6 @@ Vercel Product Fit:
    - Usage limits and pricing thresholds
    - Enterprise-specific capabilities
 
-Vercel Customer Story:
-   - Review the provided Vercel customer stories
-   - Select the most relevant customer story based on:
-     * Similar industry or business model
-     * Similar technical challenges
-     * Similar scale or growth trajectory
-   - Summarize why this customer story would resonate with the prospect
-   - Highlight specific metrics or improvements that would be relevant to them
-   - Give multiple bullet points that the Account Executive can use to sell Vercel Enterprise to the prospect
-
 Prospect Background:
    - IMPORTANT: This section is about the CUSTOMER/PROSPECT only
    ${hasProspectInfo ? 
@@ -177,12 +158,10 @@ Prospect Background:
        * Their education (as shown on LinkedIn)
        * Their previous experience (as shown on LinkedIn)` 
      : '- Note: No prospect LinkedIn profile screenshot provided'}
-   - DO NOT use information from meeting/email screenshots in this section
-   - DO NOT confuse this with the SDR's information
 
 Format your summary as a list of bullet points, with no more than 15 points in total. Use clear and concise language, and ensure that each point provides valuable information for the Account Executive.
 
-Begin your summary with the heading "Meeting Preparation Summary" and use subheadings for each section.`
+Use subheadings for each section.`
     });
 
     console.log('Starting API call to Anthropic...'); // Debug log
