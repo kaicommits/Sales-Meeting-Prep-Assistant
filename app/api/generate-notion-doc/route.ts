@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     // Add Vercel context first
     messageContent.push({
       type: "text",
-      text: `Here is important context about Vercel's Enterprise offering:\n\n${vercelContext}\n\n`
+      text: `Here is important context about Vercel's Enterprise offering and Customer Stories to reference:\n\n${vercelContext}\n\n`
     });
 
     // Add initial instruction
@@ -50,7 +50,6 @@ export async function POST(request: Request) {
     let techStackData = '';
     let hasProBill = false;
     let hasProspectInfo = false;
-    let hasMeetingContext = false;
 
     for (const [key, value] of formData.entries()) {
       if (value instanceof File) {
@@ -63,9 +62,6 @@ export async function POST(request: Request) {
           }
           if (key === 'prospectInfo') {
             hasProspectInfo = true;
-          }
-          if (key === 'meetingReason') {
-            hasMeetingContext = true;
           }
 
           messageContent.push({
@@ -108,11 +104,6 @@ IMPORTANT - REQUIRED FORMAT:
    - Vercel Product Fit
    - Vercel Customer Story
    - Prospect Background
-   - Meeting Background
-2. DO NOT add any additional sections
-3. DO NOT include a Key Takeaways section
-4. DO NOT include a summary at the end
-5. STOP after the Meeting Background section
 
 The summary should be based on the following input variables:
 
@@ -121,7 +112,6 @@ The summary should be based on the following input variables:
 -A CSV file containing the company's technology stack (provided as techStack files)
 -Screenshots of the company's current spending on the Vercel Pro plan (provided as proBill screenshots)
 -Screenshots of the prospect's LinkedIn profile (provided as prospectInfo screenshots)
--Screenshots of email/LinkedIn conversation or notes from the phone call that set the meeting (provided as meetingReason screenshots)
 
 Using these inputs, create a summary with the following sections:
 
@@ -129,7 +119,6 @@ Using these inputs, create a summary with the following sections:
 2. Vercel Product Fit
 3. Vercel Customer Story
 4. Prospect Background
-5. Meeting Background
 
 Guidelines for each section:
 
@@ -143,11 +132,6 @@ Company Background:
      * Their product/service offerings
      * Target market and customer base
      * Create bullet points for each of these points
-   - Research the company and find:
-     * Funding information (REQUIRED):
-       - If found: Include the exact amount, date, and stage and cite source
-       - If not found: Explicitly state "No funding information found"
-     * Create bullet points for each of these points
 
 Vercel Product Fit:
    - Technology Stack Analysis:
@@ -159,10 +143,11 @@ Vercel Product Fit:
    ${hasProBill ? `- Pro Plan Usage Analysis:
      * REQUIRED - Extract and list these exact numbers from the Pro Bill screenshots:
        - Total bill amount for last month (exact number required, e.g., "$1,234.56")
-       - List the top 3 cost items with exact amounts and percentages (all three required):
+       - List the top 4 cost items with exact amounts and percentages (all four required):
          > [Item 1 name]: $XXX.XX (XX% of total)
          > [Item 2 name]: $XXX.XX (XX% of total)
          > [Item 3 name]: $XXX.XX (XX% of total)
+         > [Item 4 name]: $XXX.XX (XX% of total)
        - Show month-over-month spending trend with specific numbers
        DO NOT skip showing these exact numbers` 
    : '- Note: No Pro Bill information provided'}
@@ -173,7 +158,7 @@ Vercel Product Fit:
    - Enterprise-specific capabilities
 
 Vercel Customer Story:
-   - Review the company's website and the provided Vercel customer stories
+   - Review the provided Vercel customer stories
    - Select the most relevant customer story based on:
      * Similar industry or business model
      * Similar technical challenges
@@ -194,17 +179,6 @@ Prospect Background:
      : '- Note: No prospect LinkedIn profile screenshot provided'}
    - DO NOT use information from meeting/email screenshots in this section
    - DO NOT confuse this with the SDR's information
-
-Meeting Background:
-   - IMPORTANT: This section is about the CONVERSATION between SDR and prospect
-   ${hasMeetingContext ? 
-     `- Use ONLY the meeting context screenshots (email/LinkedIn/call notes) to show:
-       * What the SDR said to secure the meeting
-       * How the prospect responded
-       * Any specific interests/concerns mentioned by the prospect` 
-     : '- Note: No meeting context screenshots provided'}
-   - DO NOT use information from the prospect's LinkedIn profile here
-   - DO NOT confuse the prospect's LinkedIn profile with meeting context
 
 Format your summary as a list of bullet points, with no more than 15 points in total. Use clear and concise language, and ensure that each point provides valuable information for the Account Executive.
 

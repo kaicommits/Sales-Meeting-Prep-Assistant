@@ -9,13 +9,11 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 
 type FormData = {
-  meetingReason: string
   companyWebsite: string
 }
 
 type ScreenshotData = {
   [key: string]: File[]
-  meetingReason: File[]
   proBill: File[]
   techStack: File[]
   prospectInfo: File[]
@@ -24,12 +22,10 @@ type ScreenshotData = {
 
 export default function SDRTool() {
   const [formData, setFormData] = useState<FormData>({
-    meetingReason: '',
     companyWebsite: '',
   })
 
   const [screenshots, setScreenshots] = useState<ScreenshotData>({
-    meetingReason: [],
     proBill: [],
     techStack: [],
     prospectInfo: [],
@@ -90,14 +86,8 @@ export default function SDRTool() {
     setError(null);
 
     const formDataToSend = new FormData();
-    formDataToSend.append('meetingReason', formData.meetingReason);
     formDataToSend.append('companyWebsite', formData.companyWebsite);
     
-    // Append email screenshots
-    screenshots.meetingReason.forEach((file) => {
-      formDataToSend.append('meetingReason', file);
-    });
-
     // Append files
     screenshots.proBill.forEach((file) => {
       formDataToSend.append('proBill', file);
@@ -153,11 +143,9 @@ export default function SDRTool() {
 
   const handleNewDocument = () => {
     setFormData({
-      meetingReason: '',
       companyWebsite: '',
     })
     setScreenshots({
-      meetingReason: [],
       proBill: [],
       techStack: [],
       prospectInfo: [],
@@ -326,52 +314,6 @@ export default function SDRTool() {
                     </Button>
                   </div>
                 ))}
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <Label htmlFor="meetingReason" className="text-lg font-semibold">🤝 Meeting Context</Label>
-              <div className="flex flex-col space-y-2">
-                <Input
-                  id="meetingReason"
-                  name="meetingReason"
-                  value={formData.meetingReason}
-                  onChange={handleInputChange}
-                  className="w-full"
-                  placeholder="Enter the reason for the meeting (optional)"
-                />
-                <div>
-                  <Input
-                    type="file"
-                    id="meetingReason-screenshot"
-                    name="meetingReason"
-                    onChange={handleFileChange}
-                    accept="image/*"
-                    className="hidden"
-                    multiple
-                  />
-                  <Label
-                    htmlFor="meetingReason-screenshot"
-                    className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-black hover:text-white h-10 px-4 py-2"
-                  >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Screenshots of the Email or LinkedIn Exchange
-                  </Label>
-                  {screenshots.meetingReason.map((file, index) => (
-                    <div key={index} className="mt-2 flex items-center">
-                      <span className="text-sm text-gray-500">{file.name}</span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="ml-2"
-                        onClick={() => handleFileRemove('meetingReason', index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
               </div>
             </div>
 
